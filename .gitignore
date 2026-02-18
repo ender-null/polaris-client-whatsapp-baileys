@@ -109,6 +109,7 @@ dist
 data/
 tokens/
 baileys_auth_info/
+session_id.txt
 config.json
 
 # Migration

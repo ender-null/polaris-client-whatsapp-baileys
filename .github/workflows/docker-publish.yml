@@ -166,7 +166,7 @@ jobs:
             docker pull ghcr.io/${{ github.repository }}:${{ env.TAG }}
             docker stop ${{ env.CONTAINER_NAME }}
             docker rm ${{ env.CONTAINER_NAME }}
-            docker run -e SERVER=${{ env.SERVER }} -e CONFIG='${{ env.CONFIG }}' -v $PWD/logs:/usr/src/app/logs -v /srv/polaris-client-whatsapp-wppconnect/tokens:/usr/src/app/tokens -e TZ=Europe/Madrid -ti -d --restart unless-stopped --name ${{ env.CONTAINER_NAME }} ghcr.io/${{ github.repository }}:${{ env.TAG }}
+            docker run -e SERVER=${{ env.SERVER }} -e MONGODB_URI='${{ env.MONGODB_URI }}' -e CONFIG='${{ env.CONFIG }}' -v $PWD/logs:/usr/src/app/logs -v /srv/polaris-client-whatsapp-baileys/session_id.txt:/usr/src/app/session_id.txt -e TZ=Europe/Madrid -ti -d --restart unless-stopped --name ${{ env.CONTAINER_NAME }} ghcr.io/${{ github.repository }}:${{ env.TAG }}
 
       - name: Generate summary
         id: generate-summary

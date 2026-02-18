@@ -3,7 +3,7 @@ import makeWASocket, { WAMessage } from 'baileys';
 import { FileResult } from 'tmp';
 import WebSocket from 'ws';
 import { Config } from './config';
-import { ConversationType, Message, User, WSInit, WSPing } from './types';
+import { ConversationType, Message, User, WSInit, WSPing, Extra, Conversation } from './types';
 import { fromBase64, logger } from './utils';
 
 export class Bot {
@@ -52,43 +52,39 @@ export class Bot {
   }
 
   async convertMessage(msg: WAMessage) {
-    console.log(msg);
     await this.client.sendPresenceUpdate('available');
-    /*const id: string = msg.id;
+    const id: string = msg.key.id;
     const extra: Extra = {
       //originalMessage: msg,
     };
-    const chat = await this.client.getChatById(msg.chatId);
-    const conversation = chat.groupMetadata
-      ? new Conversation(`-${chat.groupMetadata.id.user}`, chat.groupMetadata.subject, 'group')
-      : new Conversation(chat.id.user, chat.contact.pushname, 'private');
-    const senderId = msg.sender.id.toString().split('@')[0];
-    const sender = new User(senderId, msg.sender.pushname, null, senderId, false);
+    const conversationId = msg.key.remoteJid.toString().split('@')[0];
+    const conversationType = msg.key.remoteJid.toString().split('@')[1] === 'g.us' ? 'group' : 'private';
+    const conversation = new Conversation(conversationId, msg.pushName ?? conversationId, conversationType);
+    const senderId = msg.key.remoteJid.toString().split('@')[0];
+    const sender = new User(senderId, msg.pushName, null, senderId, false);
     let content;
     let type;
 
-    if (msg.type === MessageType.CHAT) {
-      content = msg.content;
+    if (msg.message?.conversation) {
+      content = msg.message?.conversation;
       type = 'text';
-      if (msg.mentionedJidList) {
-        extra.mentions = msg.mentionedJidList;
-      }
-    } else if (msg.type === MessageType.IMAGE) {
-      content = msg.content;
-      type = 'photo';
-      extra.caption = msg['caption'];
-    } else {
-      type = 'unsupported';
-    }
-    let reply: Message = null;
-    if (msg.quotedMsgId) {
-      const quotedMsg = await this.client.getMessageById(msg.quotedMsgId);
-      reply = await this.convertMessage(quotedMsg);
+    } else if (msg.message?.extendedTextMessage?.text) {
+      content = msg.message?.extendedTextMessage?.text;
+      type = 'text';
+    } else if (msg.message?.imageMessage) {
+      content = msg.message?.imageMessage?.url;
+      type = 'image';
+    } else if (msg.message?.videoMessage) {
+      content = msg.message?.videoMessage?.url;
+      type = 'video';
+    } else if (msg.message?.audioMessage) {
+      content = msg.message?.audioMessage?.url;
+      type = 'audio';
     }
 
-    const date = msg.timestamp;
+    const date = Number(msg.messageTimestamp);
+    const reply = null;
     return new Message(id, conversation, sender, content, type, date, reply, extra);
-    */
   }
 
   formatChatId(conversationId: number | string, type: ConversationType) {

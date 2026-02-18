@@ -7,13 +7,14 @@ import makeWASocket, {
   DisconnectReason,
   fetchLatestBaileysVersion,
   makeCacheableSignalKeyStore,
-  useMultiFileAuthState,
 } from 'baileys';
 import QRCode from 'qrcode';
 import WebSocket from 'ws';
 import { Bot } from './bot';
-import { WSPing } from './types';
+import { WSMessage, WSPing } from './types';
 import { catchException, logger } from './utils';
+import { getPersistentSessionId, useMongooseAuthState } from './storage';
+import mongoose from 'mongoose';
 
 let bot: Bot;
 let ws: WebSocket;
@@ -41,7 +42,9 @@ const msgRetryCounterCache = new NodeCache() as CacheStore;
 const serverUrl = process.env.SERVER;
 
 const startSock = async () => {
-  const { state, saveCreds } = await useMultiFileAuthState('baileys_auth_info');
+  await mongoose.connect(process.env.MONGODB_URI as string);
+  const sessionId = getPersistentSessionId();
+  const { state, saveCreds } = await useMongooseAuthState(sessionId);
   const { version } = await fetchLatestBaileysVersion();
 
   const sock = makeWASocket({
@@ -61,44 +64,59 @@ const startSock = async () => {
     //getMessage,
   });
 
-  sock.ev.process(
-    // events is a map for event name => event data
-    async (events) => {
-      // something about the connection changed
-      // maybe it closed, or we received all offline message or connection opened
-      if (events['connection.update']) {
-        const update = events['connection.update'];
-        const { connection, lastDisconnect, qr } = update;
-        if (connection === 'close') {
-          // reconnect if not logged out
-          if ((lastDisconnect?.error as Boom)?.output?.statusCode !== DisconnectReason.loggedOut) {
-            startSock();
-          } else {
-            logger.error('Connection closed. You are logged out.');
+  sock.ev.process(async (events) => {
+    if (events['connection.update']) {
+      const update = events['connection.update'];
+      const { connection, lastDisconnect, qr } = update;
+      if (connection === 'close') {
+        if ((lastDisconnect?.error as Boom)?.output?.statusCode !== DisconnectReason.loggedOut) {
+          startSock();
+        } else {
+          logger.error('Connection closed. You are logged out.');
+        }
+      } else if (connection === 'open') {
+        await start(sock as any);
+      }
+
+      if (qr) {
+        logger.info(await QRCode.toString(qr, { type: 'terminal', small: true }));
+      }
+
+      logger.debug(JSON.stringify(update), 'connection update');
+    }
+
+    // credentials updated -- save them
+    if (events['creds.update']) {
+      await saveCreds();
+      logger.debug('creds save triggered');
+    }
+
+    if (events['messages.upsert']) {
+      const upsert = events['messages.upsert'];
+
+      if (!!upsert.requestId) {
+        logger.info(JSON.stringify(upsert, null, 4), 'placeholder request message received');
+      }
+
+      if (upsert.type === 'notify') {
+        for (const msg of upsert.messages) {
+          const convertedMessage = await bot.convertMessage(msg);
+          if (convertedMessage !== null) {
+            const data: WSMessage = {
+              bot: bot.user.username,
+              platform: 'whatsapp',
+              type: 'message',
+              message: convertedMessage,
+            };
+            ws.send(JSON.stringify(data));
           }
         }
-
-        if (qr) {
-          console.log(await QRCode.toString(qr, { type: 'terminal', small: true }));
-        }
-
-        logger.debug(JSON.stringify(update), 'connection update');
       }
-
-      // credentials updated -- save them
-      if (events['creds.update']) {
-        await saveCreds();
-        logger.debug('creds save triggered');
-      }
-    },
-  );
+    }
+  });
 
   return sock;
 };
-
-startSock()
-  .then(async (client) => await start(client as any))
-  .catch((error) => logger.error(error.message));
 
 clearInterval(pingInterval);
 pingInterval = setInterval(() => {
@@ -117,7 +135,6 @@ pingInterval = setInterval(() => {
 
 const start = async (client: ReturnType<typeof startSock>) => {
   const user = (await client).user;
-  console.log(user);
   const accountId = user.lid.split(':')[0];
   ws = new WebSocket(`${serverUrl}?platform=whatsapp&accountId=${accountId}`);
 
@@ -170,3 +187,5 @@ const start = async (client: ReturnType<typeof startSock>) => {
     }
   });
 };
+
+startSock();
