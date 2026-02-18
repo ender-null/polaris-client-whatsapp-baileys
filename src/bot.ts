@@ -1,10 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import makeWASocket, { WAMessage } from 'baileys';
+import makeWASocket, { WAMessage, generateMessageIDV2 } from 'baileys';
 import { FileResult } from 'tmp';
 import WebSocket from 'ws';
 import { Config } from './config';
 import { ConversationType, Message, User, WSInit, WSPing, Extra, Conversation } from './types';
-import { fromBase64, logger } from './utils';
+import { fromBase64, htmlToWhatsAppMarkdown, logger } from './utils';
 
 export class Bot {
   user: User;
@@ -93,7 +93,17 @@ export class Bot {
   }
 
   async sendMessage(msg: Message): Promise<WAMessage> {
-    console.log(msg);
+    if (msg.type == 'text') {
+      const id = generateMessageIDV2(this.client.user?.id);
+      const chatId = this.formatChatId(msg.conversation.id, msg.conversation.type);
+      let text = msg.content;
+      if (msg.extra && msg.extra.format && msg.extra.format === 'HTML') {
+        text = htmlToWhatsAppMarkdown(text);
+      }
+      text = text.trim();
+      await this.client.sendMessage(chatId, { text }, { messageId: id });
+    }
+
     /*await this.client.setOnlinePresence(true);
     const chatId = this.formatChatId(msg.conversation.id, msg.conversation.type);
     await this.client.startTyping(chatId);

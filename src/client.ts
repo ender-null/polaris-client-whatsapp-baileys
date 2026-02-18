@@ -81,8 +81,6 @@ const startSock = async () => {
       if (qr) {
         logger.info(await QRCode.toString(qr, { type: 'terminal', small: true }));
       }
-
-      logger.debug(JSON.stringify(update), 'connection update');
     }
 
     // credentials updated -- save them
@@ -140,16 +138,6 @@ const start = async (client: ReturnType<typeof startSock>) => {
 
   ws.on('open', async () => {
     bot = new Bot(ws, client as any);
-    /*bot.client.onMessage(async (message) => {
-      const msg = await bot.convertMessage(message);
-      const data: WSMessage = {
-        bot: bot.user.username,
-        platform: 'whatsapp',
-        type: 'message',
-        message: msg,
-      };
-      ws.send(JSON.stringify(data));
-    });*/
     await bot.init();
   });
 
