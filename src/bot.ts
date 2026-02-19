@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import makeWASocket, { WAMessage, generateMessageIDV2, WAMessageKey } from 'baileys';
+import makeWASocket, { WAMessage, generateMessageIDV2 } from 'baileys';
 import { FileResult } from 'tmp';
 import WebSocket from 'ws';
 import { Config } from './config';
