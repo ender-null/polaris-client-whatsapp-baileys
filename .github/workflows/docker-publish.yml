@@ -150,7 +150,7 @@ jobs:
           USERNAME: op://end.works/end.works/username
           KEY: op://end.works/SSH Key/private key
           FINGERPRINT: op://end.works/SSH Key/fingerprint
-          SERVER: op://end.works/Peto-tan Config/server
+          SERVER: op://end.works/Arcturus Config/server
           CONFIG: op://end.works/Peto-tan Config/config whatsapp
           MONGODB_URI: op://end.works/Peto-tan Config/mongodb uri
 
