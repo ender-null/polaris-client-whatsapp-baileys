@@ -3,7 +3,7 @@ import makeWASocket, { WAMessage, generateMessageIDV2 } from 'baileys';
 import { FileResult } from 'tmp';
 import WebSocket from 'ws';
 import { Config } from './config';
-import { ConversationType, Message, User, WSInit, WSPing, Extra, Conversation } from './types';
+import { Conversation, ConversationType, Extra, Message, User, WSInit, WSPing } from './types';
 import { fromBase64, htmlToWhatsAppMarkdown, logger } from './utils';
 
 export class Bot {
@@ -59,7 +59,9 @@ export class Bot {
     };
     const conversationId = msg.key.remoteJid.toString().split('@')[0];
     const conversationType = msg.key.remoteJid.toString().split('@')[1] === 'g.us' ? 'group' : 'private';
-    const conversation = new Conversation(conversationId, msg.pushName ?? conversationId, conversationType);
+    const groupMetadata = conversationType === 'group' ? await this.client.groupMetadata(msg.key.remoteJid) : null;
+    const conversationName = groupMetadata?.subject ?? msg.pushName ?? conversationId;
+    const conversation = new Conversation(conversationId, conversationName, conversationType);
     const senderId = msg.key.remoteJid.toString().split('@')[0];
     const sender = new User(senderId, msg.pushName, null, senderId, false);
     let content;
@@ -80,6 +82,12 @@ export class Bot {
     } else if (msg.message?.audioMessage) {
       content = msg.message?.audioMessage?.url;
       type = 'audio';
+    } else if (msg.message?.stickerMessage) {
+      content = msg.message?.stickerMessage?.url;
+      type = 'sticker';
+    } else if (msg.message?.documentMessage) {
+      content = msg.message?.documentMessage?.url;
+      type = 'document';
     }
 
     const date = Number(msg.messageTimestamp);
