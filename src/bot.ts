@@ -88,8 +88,12 @@ export class Bot {
   }
 
   formatChatId(conversationId: number | string, type: ConversationType) {
-    const isGroup = type !== 'private' || String(conversationId).startsWith('-');
-    return isGroup ? `${String(conversationId).slice(1)}@g.us` : `${conversationId}@lid`;
+    const isLegacyGroup = String(conversationId).startsWith('-');
+    const isGroup = type !== 'private' || isLegacyGroup;
+    if (isGroup) {
+      return `${isLegacyGroup ? String(conversationId).slice(1) : conversationId}@g.us`;
+    }
+    return `${conversationId}@lid`;
   }
 
   async sendMessage(msg: Message): Promise<WAMessage> {
