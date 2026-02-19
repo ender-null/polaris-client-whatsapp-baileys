@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import makeWASocket, { WAMessage, generateMessageIDV2 } from 'baileys';
+import makeWASocket, { WAMessage, generateMessageIDV2, WAMessageKey } from 'baileys';
 import { FileResult } from 'tmp';
 import WebSocket from 'ws';
 import { Config } from './config';
@@ -53,6 +53,7 @@ export class Bot {
 
   async convertMessage(msg: WAMessage) {
     await this.client.sendPresenceUpdate('available');
+    await this.client.readMessages([msg.key]);
     const id: string = msg.key.id;
     const extra: Extra = {
       //originalMessage: msg,
@@ -114,6 +115,18 @@ export class Bot {
       }
       text = text.trim();
       await this.client.sendMessage(chatId, { text }, { messageId: id });
+    } else if (msg.type == 'image') {
+      const id = generateMessageIDV2(this.client.user?.id);
+      const chatId = this.formatChatId(msg.conversation.id, msg.conversation.type);
+      await this.client.sendMessage(
+        chatId,
+        { image: { url: msg.content }, caption: msg.extra?.caption, mentions: msg.extra?.mentions },
+        { messageId: id },
+      );
+    } else if (msg.type == 'audio' || msg.type == 'voice') {
+      const id = generateMessageIDV2(this.client.user?.id);
+      const chatId = this.formatChatId(msg.conversation.id, msg.conversation.type);
+      await this.client.sendMessage(chatId, { audio: { url: msg.content } }, { messageId: id });
     }
 
     /*await this.client.setOnlinePresence(true);
