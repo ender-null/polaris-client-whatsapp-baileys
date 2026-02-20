@@ -114,13 +114,23 @@ export class Bot {
         text = htmlToWhatsAppMarkdown(text);
       }
       text = text.trim();
-      await this.client.sendMessage(chatId, { text }, { messageId: id });
+
+      const result = text.matchAll(/@\d+/gim);
+      const mentionsFound = [...result][0];
+      const mentions: any[] = mentionsFound?.map((mention) => `${mention.slice(1)}@lid`);
+
+      await this.client.sendMessage(chatId, { text, mentions }, { messageId: id });
     } else if (msg.type == 'image') {
       const id = generateMessageIDV2(this.client.user?.id);
       const chatId = this.formatChatId(msg.conversation.id, msg.conversation.type);
+
+      const result = msg.extra?.caption.matchAll(/@\d+/gim);
+      const mentionsFound = [...result][0];
+      const mentions: any[] = mentionsFound?.map((mention) => `${mention.slice(1)}@lid`);
+
       await this.client.sendMessage(
         chatId,
-        { image: { url: msg.content }, caption: msg.extra?.caption, mentions: msg.extra?.mentions },
+        { image: { url: msg.content }, caption: msg.extra?.caption, mentions: mentions },
         { messageId: id },
       );
     } else if (msg.type == 'audio' || msg.type == 'voice') {
