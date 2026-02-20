@@ -58,12 +58,12 @@ export class Bot {
     const extra: Extra = {
       //originalMessage: msg,
     };
-    const conversationId = msg.key.remoteJid.toString().split('@')[0];
-    const conversationType = msg.key.remoteJid.toString().split('@')[1] === 'g.us' ? 'group' : 'private';
+    const conversationId = msg.key.remoteJid.split('@')[0];
+    const conversationType = msg.key.remoteJid.split('@')[1] === 'g.us' ? 'group' : 'private';
     const groupMetadata = conversationType === 'group' ? await this.client.groupMetadata(msg.key.remoteJid) : null;
     const conversationName = groupMetadata?.subject ?? msg.pushName ?? conversationId;
     const conversation = new Conversation(conversationId, conversationName, conversationType);
-    const senderId = msg.key.remoteJid.toString().split('@')[0];
+    const senderId = msg.key.participant.length ? msg.key.participant.split('@')[0] : conversationId;
     const sender = new User(senderId, msg.pushName, null, senderId, false);
     let content;
     let type;
