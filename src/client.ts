@@ -8,13 +8,13 @@ import makeWASocket, {
   fetchLatestBaileysVersion,
   makeCacheableSignalKeyStore,
 } from 'baileys';
+import mongoose from 'mongoose';
 import QRCode from 'qrcode';
 import WebSocket from 'ws';
 import { Bot } from './bot';
+import { getPersistentSessionId, useMongooseAuthState } from './storage';
 import { WSMessage, WSPing } from './types';
 import { catchException, logger } from './utils';
-import { getPersistentSessionId, useMongooseAuthState } from './storage';
-import mongoose from 'mongoose';
 
 let bot: Bot;
 let ws: WebSocket;

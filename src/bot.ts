@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import makeWASocket, { WAMessage, generateMessageIDV2 } from 'baileys';
+import makeWASocket, { WAMediaUpload, WAMessage, generateMessageIDV2 } from 'baileys';
 import { FileResult } from 'tmp';
 import WebSocket from 'ws';
 import { Config } from './config';
@@ -120,111 +120,31 @@ export class Bot {
       const mentions: any[] = mentionsFound?.map((mention) => `${mention.slice(1)}@lid`);
 
       await this.client.sendMessage(chatId, { text, mentions }, { messageId: id });
-    } else if (msg.type == 'image') {
+    } else if (msg.type == 'photo') {
       const id = generateMessageIDV2(this.client.user?.id);
       const chatId = this.formatChatId(msg.conversation.id, msg.conversation.type);
-
-      const result = msg.extra?.caption.matchAll(/@\d+/gim);
-      const mentionsFound = [...result][0];
-      const mentions: any[] = mentionsFound?.map((mention) => `${mention.slice(1)}@lid`);
-
-      await this.client.sendMessage(
-        chatId,
-        { image: { url: await this.getInputFile(msg.content) }, caption: msg.extra?.caption, mentions: mentions },
-        { messageId: id },
-      );
+      const media = await this.getMediaUpload(msg.content);
+      await this.client.sendMessage(chatId, { image: media, caption: msg.extra?.caption }, { messageId: id });
     } else if (msg.type == 'audio' || msg.type == 'voice') {
       const id = generateMessageIDV2(this.client.user?.id);
       const chatId = this.formatChatId(msg.conversation.id, msg.conversation.type);
-      await this.client.sendMessage(
-        chatId,
-        { audio: { url: await this.getInputFile(msg.content) } },
-        { messageId: id },
-      );
+      const media = await this.getMediaUpload(msg.content);
+      await this.client.sendMessage(chatId, { audio: media, ptt: msg.type === 'voice' }, { messageId: id });
     }
 
-    /*await this.client.setOnlinePresence(true);
-    const chatId = this.formatChatId(msg.conversation.id, msg.conversation.type);
-    await this.client.startTyping(chatId);
-
-    let caption = msg.extra?.caption;
-    if (msg.extra && msg.extra.format && msg.extra.format === 'HTML') {
-      caption = htmlToWhatsAppMarkdown(msg.extra?.caption);
-    }
-    caption = caption?.trim();
-    const quotedMessageId = msg.reply ? String(msg.reply.id) : null;
-
-    let downloadedFile: FileResult = null;
-    if (
-      msg.type != 'text' &&
-      msg.content &&
-      (msg.content.startsWith('http://') || msg.content.startsWith('https://'))
-    ) {
-      downloadedFile = await downloadFileFromUrl(msg.content);
-    }
-
-    if (msg.type == 'text') {
-      if (!msg.content || (typeof msg.content == 'string' && msg.content.length == 0)) {
-        return null;
-      }
-      let preview = false;
-      if (msg.extra && 'preview' in msg.extra) {
-        preview = msg.extra.preview;
-      }
-      let text = msg.content;
-      if (msg.extra && msg.extra.format && msg.extra.format === 'HTML') {
-        text = htmlToWhatsAppMarkdown(text);
-      }
-      text = text.trim();
-      const result = text.matchAll(/@\d+/gim);
-      const mentionsFound = [...result][0];
-      const mentions: any[] = mentionsFound?.map((mention) => `${mention.slice(1)}@lid`);
-      this.client.sendText(chatId, text, {
-        linkPreview: preview,
-        mentionedList: mentions,
-        quotedMsg: quotedMessageId,
-      });
-    } else if (msg.type == 'photo') {
-      if (downloadedFile) {
-        this.client.sendImage(chatId, downloadedFile.name, msg.type, msg.extra.caption, quotedMessageId);
-      } else {
-        this.client.sendImageFromBase64(chatId, msg.content, msg.type, msg.extra.caption, quotedMessageId);
-      }
-    } else if (msg.type == 'animation') {
-      if (downloadedFile) {
-        this.client.sendGif(chatId, downloadedFile.name, msg.type, msg.extra.caption);
-      } else {
-        this.client.sendGifFromBase64(chatId, msg.content, msg.type, msg.extra.caption);
-      }
-    } else if (msg.type == 'voice' || msg.type == 'audio') {
-      if (downloadedFile) {
-        this.client.sendPtt(chatId, downloadedFile.name, msg.type, msg.extra.caption, quotedMessageId);
-      } else {
-        this.client.sendPttFromBase64(chatId, msg.content, msg.type, msg.extra.caption, quotedMessageId);
-      }
-    } else if (msg.type == 'document') {
-      this.client.sendFile(chatId, msg.content, {
-        caption: msg.extra.caption,
-        filename: msg.type,
-        quotedMsg: quotedMessageId,
-      });
-    } else if (msg.type == 'video') {
-      if (downloadedFile) {
-        this.client.sendVideoAsGif(chatId, downloadedFile.name, msg.type, msg.extra.caption);
-      } else {
-        this.client.sendVideoAsGifFromBase64(chatId, msg.content, msg.type, msg.extra.caption, quotedMessageId);
-      }
-    }
-    await this.client.stopTyping(chatId);
-    */
     return null;
   }
 
-  async getInputFile(content: string): Promise<string> {
-    if (content.startsWith('/')) {
+  async getMediaUpload(content: string): Promise<WAMediaUpload> {
+    let mediaUpload = null;
+    if (content.startsWith('http')) {
+      mediaUpload = { url: content };
+    } else if (!content.startsWith('/')) {
       const file: FileResult = await fromBase64(content);
-      return file.name;
+      mediaUpload = { url: file.name };
+    } else {
+      mediaUpload = { url: content };
     }
-    return null;
+    return mediaUpload;
   }
 }
