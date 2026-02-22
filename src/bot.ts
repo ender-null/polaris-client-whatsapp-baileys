@@ -130,13 +130,17 @@ export class Bot {
 
       await this.client.sendMessage(
         chatId,
-        { image: { url: msg.content }, caption: msg.extra?.caption, mentions: mentions },
+        { image: { url: await this.getInputFile(msg.content) }, caption: msg.extra?.caption, mentions: mentions },
         { messageId: id },
       );
     } else if (msg.type == 'audio' || msg.type == 'voice') {
       const id = generateMessageIDV2(this.client.user?.id);
       const chatId = this.formatChatId(msg.conversation.id, msg.conversation.type);
-      await this.client.sendMessage(chatId, { audio: { url: msg.content } }, { messageId: id });
+      await this.client.sendMessage(
+        chatId,
+        { audio: { url: await this.getInputFile(msg.content) } },
+        { messageId: id },
+      );
     }
 
     /*await this.client.setOnlinePresence(true);
