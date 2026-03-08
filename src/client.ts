@@ -134,7 +134,12 @@ pingInterval = setInterval(() => {
 const start = async (client: ReturnType<typeof startSock>) => {
   const user = (await client).user;
   const accountId = user.lid.split(':')[0];
-  ws = new WebSocket(`${serverUrl}?platform=whatsapp&accountId=${accountId}`);
+  ws = new WebSocket(`${serverUrl}?platform=whatsapp&accountId=${accountId}`, {
+    headers: {
+      'CF-Access-Client-Id': process.env.CF_ACCESS_CLIENT_ID,
+      'CF-Access-Client-Secret': process.env.CF_ACCESS_CLIENT_SECRET,
+    },
+  });
 
   ws.on('open', async () => {
     bot = new Bot(ws, client as any);

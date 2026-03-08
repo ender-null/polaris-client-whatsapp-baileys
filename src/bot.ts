@@ -136,7 +136,7 @@ export class Bot {
   }
 
   async getMediaUpload(content: string): Promise<WAMediaUpload> {
-    let mediaUpload = null;
+    let mediaUpload: WAMediaUpload = null;
     if (content.startsWith('http')) {
       mediaUpload = { url: content };
     } else if (!content.startsWith('/')) {
